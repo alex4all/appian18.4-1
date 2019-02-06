@@ -1,0 +1,156 @@
+version: '3'
+services:
+  web-application:
+    image: appian-web-application
+    build:
+      context: ./build-files
+      dockerfile: ./appian-web-application/Dockerfile
+    container_name: web-application
+    links:
+      - "service-manager:engines"
+    depends_on:
+      - search-server
+      - service-manager
+      - rdbms
+    ports:
+      - "8080:8080"
+    stop_grace_period: 15m
+    volumes:
+      - ./conf:${APPIAN_HOME}/conf/:delegated
+
+      - ./data/server:${APPIAN_HOME}/server:delegated
+      - ./data/_admin:${APPIAN_HOME}/_admin:delegated
+      - ./data/kafka-logs:${APPIAN_HOME}/services/data/kafka-logs:delegated
+
+      - ./data/verify-data-was-initialized:${APPIAN_HOME}/verify-data-was-initialized:delegated
+
+      - ./logs:${APPIAN_HOME}/logs:delegated
+    environment:
+      - WAIT_CONTAINERS=search-server service-manager
+      - CATALINA_OPTS="-DjvmRoute=node1"
+
+  search-server:
+    image: appian-search-server
+    build:
+      context: ./build-files
+      dockerfile: ./appian-search-server/Dockerfile
+    container_name: search-server
+    depends_on:
+      - base
+    ports:
+      - "9301:9301"
+    stop_grace_period: 15m
+    volumes:
+      - ./conf/appian-topology.xml:${APPIAN_HOME}/search-server/conf/appian-topology.xml:delegated
+
+      - ./data/server:${APPIAN_HOME}/server:delegated
+      - ./data/_admin:${APPIAN_HOME}/_admin:delegated
+      - ./data/kafka-logs:${APPIAN_HOME}/services/data/kafka-logs:delegated
+
+      - ./data/verify-data-was-initialized:${APPIAN_HOME}/verify-data-was-initialized:delegated
+
+      - ./logs:${APPIAN_HOME}/logs:delegated
+
+  service-manager:
+    image: appian-service-manager
+    build:
+      context: ./build-files
+      dockerfile: ./appian-service-manager/Dockerfile
+      args:
+        - CRONSTRING=0 3 * * *
+        - KEEP=2
+    container_name: service-manager
+    # hostname: engines.appiancorp.com
+    depends_on:
+      - base
+    ports:
+      - "5000:5000"
+    stop_grace_period: 15m
+    volumes:
+      - ./conf:${APPIAN_HOME}/ear/suite.ear/conf/:delegated # path for 18.1
+      - ./conf:${APPIAN_HOME}/conf/:delegated # path for 18.2
+      # - ./conf/service-manager-licenses/k3.lic:${APPIAN_HOME}/server/_bin/k/linux64/k3.lic:delegated
+
+      - ./data/server:${APPIAN_HOME}/server:delegated
+      - ./data/_admin:${APPIAN_HOME}/_admin:delegated
+      - ./data/kafka-logs:${APPIAN_HOME}/services/data/kafka-logs:delegated
+
+      - ./data/verify-data-was-initialized:${APPIAN_HOME}/verify-data-was-initialized:delegated
+      - ./data/check-migration:${APPIAN_HOME}/check-migration:delegated
+
+      - ./logs:${APPIAN_HOME}/logs:delegated
+    environment:
+      - CHECK_K3=true
+      - SET_SM_PW=true
+
+  data-server:
+    image: appian-data-server
+    build:
+      context: ./build-files
+      dockerfile: ./appian-data-server/Dockerfile
+    container_name: data-server
+    # hostname: dataserver.appiancorp.com
+    links:
+      - "service-manager:engines"
+    depends_on:
+      - service-manager
+    ports:
+      - "5400:5400"
+      - "5401:5401"
+      - "5404:5404"
+    stop_grace_period: 15m
+    volumes:
+      - ./conf/appian-topology.xml:${APPIAN_HOME}/data-server/conf/appian-topology.xml:delegated
+      # - ./conf/data-server-licenses/k4.lic:${APPIAN_HOME}/data-server/engine/bin/q/l64/k4.lic:delegated
+
+      - ./data/data-server:${APPIAN_HOME}/data-server/data:delegated
+
+      - ./data/verify-data-was-initialized:${APPIAN_HOME}/verify-data-was-initialized:delegated
+
+      - ./logs/data-server:${APPIAN_HOME}/data-server/logs:delegated
+      - ./logs/data-server/data-metrics:${APPIAN_HOME}/data-server/data-metrics:delegated
+    environment:
+      - WAIT_CONTAINERS=service-manager
+      - CHECK_K4=true
+
+  base:
+    image: appian-base
+    build:
+      context: ./build-files
+      dockerfile: ./appian-base/Dockerfile
+      # args: # For dev purposes, to uniquely identify this "args" from the others in this file
+        # - APPIAN_USER_ID=<uid of the 'appian' user on host machine if Linux, 9999 for Windows/Mac>
+    container_name: base
+
+  rdbms:
+    image: appian-rdbms
+    build:
+      context: ./build-files
+      dockerfile: ./appian-rdbms/Dockerfile
+    container_name: rdbms
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./conf/mysql-db-setup.sql:/docker-entrypoint-initdb.d/mysql-db-setup.sql:delegated
+
+      - ./data/mysql:/var/lib/mysql:delegated
+
+      - ./logs/mysql:/var/log/mysql:delegated
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+
+  # web-server:
+  #   image: appian-web-server
+  #   build:
+  #     context: ./build-files
+  #     dockerfile: ./appian-web-server/Dockerfile
+  #   container_name: web-server
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./build-files/appian-web-server/web.war:/usr/local/apache2/www/suite/
+  #     - ./build-files/appian-web-server/httpd.conf:/usr/local/apache2/conf/httpd.conf
+  #     # - ./build-files/appian-web-server/server.crt:/usr/local/apache2/conf/server.crt
+  #     # - ./build-files/appian-web-server/server.key:/usr/local/apache2/conf/server.key

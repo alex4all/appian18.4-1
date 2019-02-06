@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: archived-checkpoint-dir
+spec:
+  capacity:
+    storage: 1Mi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: nfs-server.ae.svc.cluster.local
+    path: "/sm/1"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: export-dir
+spec:
+  capacity:
+    storage: 1Mi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: nfs-server.ae.svc.cluster.local
+    path: "/sm/2"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: temporary-dir
+spec:
+  capacity:
+    storage: 1Mi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: nfs-server.ae.svc.cluster.local
+    path: "/sm/3"

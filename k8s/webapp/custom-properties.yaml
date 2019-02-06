@@ -1,0 +1,18 @@
+apiVersion: v1
+data:
+  custom.properties: |
+    conf.data.APPIAN_DATA_SOURCE=jdbc/AppianPrimaryDS
+    conf.data.datasources=jdbc/AppianBusinessDS
+    conf.monitoring.client.logging.level=SEVERE
+    conf.plugins.poll-interval=2
+    conf.suite.APPLICATION_CONTEXT=suite
+    conf.suite.BUILD=0
+    conf.suite.CLIENT_LOG_LEVEL=LOG_DEBUG
+    conf.suite.PRODUCTION=false
+    conf.suite.SCHEME=http
+    conf.suite.SERVER_AND_PORT={{STATIC_IP_ADDRESS}}
+    conf.suite.TRAP_CLIENT_ERRORS=false
+
+kind: ConfigMap
+metadata:
+  name: custom-properties

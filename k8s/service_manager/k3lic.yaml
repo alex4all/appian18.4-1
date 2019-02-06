@@ -1,0 +1,7 @@
+apiVersion: v1
+data:
+  k3.lic: {{K3_LIC}}
+kind: Secret
+metadata:
+  name: k3lic
+type: Opaque

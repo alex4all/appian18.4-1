@@ -1,0 +1,7 @@
+apiVersion: v1
+data:
+  k4.lic: {{K4_LIC}}
+kind: Secret
+metadata:
+  name: k4lic
+type: Opaque

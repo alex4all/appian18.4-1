@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rdbms
+  labels:
+    appian: rdbms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      appian: rdbms
+  template:
+    metadata:
+      labels:
+        appian: rdbms
+    spec:
+      imagePullSecrets:
+      - name: docker-registry
+      hostname: rdbms
+      containers:
+      - name: rdbms
+        image: {{DOCKER_REGISTRY}}/appian-rdbms:latest
+        ports:
+        - containerPort: 3306
+        resources:
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+          requests:
+            cpu: "500m"
+            memory: "500Mi"
+        volumeMounts:
+        - name: mysql-db-setup
+          mountPath: /docker-entrypoint-initdb.d/
+        - name: data
+          mountPath: /var/lib/mysql
+        - name: logs
+          mountPath: /var/log/mysql
+        readinessProbe:
+          exec:
+            command: ['mysqlshow', 'AppianPrimaryDS']
+        livenessProbe:
+          exec:
+            command: ['mysqlshow', 'AppianPrimaryDS']
+      volumes:
+      - name: mysql-db-setup
+        configMap:
+          name: mysql-db-setup
+      - name: data # LOCAL
+        emptyDir: {}
+      - name: logs # LOCAL
+        emptyDir: {}

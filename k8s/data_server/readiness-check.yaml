@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  readiness-probe.sh: |
+    #!/bin/bash
+    /usr/local/appian/ae/data-server/bin/status.sh | grep GREEN
+
+kind: ConfigMap
+metadata:
+  name: data-server-readiness-probe

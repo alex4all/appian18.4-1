@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-server
+  labels:
+    appian: data-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      appian: data-server
+  template:
+    metadata:
+      labels:
+        appian: data-server
+    spec:
+      imagePullSecrets:
+      - name: docker-registry
+      hostname: data-server
+      hostAliases:
+      - ip: "127.0.0.1"
+        hostnames: ["data-server.appiancorp.com", "data-server"]
+      containers:
+      - name: data-server
+        image: {{DOCKER_REGISTRY}}/appian-data-server:latest
+        ports:
+        - containerPort: 5400
+        - containerPort: 5401
+        - containerPort: 5404
+        resources:
+          limits:
+            cpu: "2"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "500Mi"
+        volumeMounts:
+        - name: appian-topology
+          mountPath: /usr/local/appian/ae/data-server/conf/appian-topology.xml
+          subPath: appian-topology.xml
+        - name: k4lic
+          mountPath: /usr/local/appian/ae/data-server/engine/bin/q/l64/k4.lic
+          subPath: k4.lic
+        - name: data-server-readiness-probe
+          mountPath: /usr/local/appian/ae/readiness-probe.sh
+          subPath: readiness-probe.sh
+        - name: data
+          mountPath: /usr/local/appian/ae/data-server/data/
+        - name: logs
+          mountPath: /usr/local/appian/ae/data-server/logs/
+        readinessProbe:
+          exec:
+            command:
+              - '/usr/local/appian/ae/readiness-probe.sh'
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - '/usr/local/appian/ae/readiness-probe.sh'
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: appian-topology
+        configMap:
+          name: appian-topology
+      - name: k4lic
+        secret:
+            secretName: k4lic
+      - name: data-server-readiness-probe
+        configMap:
+          name: data-server-readiness-probe
+          defaultMode: 0744
+      - name: data # LOCAL
+        emptyDir: {}
+      - name: logs # LOCAL
+        emptyDir: {}

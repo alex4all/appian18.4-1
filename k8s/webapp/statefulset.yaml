@@ -1,0 +1,162 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: webapp
+  labels:
+    appian: webapp
+spec:
+  replicas: 3
+  serviceName: webapp
+  template:
+    metadata:
+      labels:
+        appian: webapp
+    spec:
+      imagePullSecrets:
+      - name: docker-registry
+      hostname: webapp
+      securityContext: # allow non-root writable access to persistent volumes
+        fsGroup: 1000
+      initContainers:
+      - name: wait-for-rdbms
+        image: giantswarm/tiny-tools
+        command: ['sh', '-c']
+        args:
+           - >
+            count=0; while [[ $count -lt 1 ]]; do sleep 1; namespace="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"; service="rdbms"; cacert="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"; token="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"; echo "Waiting for $service endpoint"; endpoints=$(curl -s --cacert "$cacert" --header "Authorization: Bearer $token" https://kubernetes.default.svc/api/v1/namespaces/"$namespace"/endpoints/"$service"); count=$(echo "$endpoints" | jq -r '.subsets[]?.addresses // [] | length'); done; exit 0
+      - name: wait-for-search-server
+        image: giantswarm/tiny-tools
+        command: ['sh', '-c']
+        args:
+           - >
+            count=0; while [[ $count -lt 1 ]]; do sleep 1; namespace="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"; service="search-server"; cacert="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"; token="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"; echo "Waiting for $service endpoint"; endpoints=$(curl -s --cacert "$cacert" --header "Authorization: Bearer $token" https://kubernetes.default.svc/api/v1/namespaces/"$namespace"/endpoints/"$service"); count=$(echo "$endpoints" | jq -r '.subsets[]?.addresses // [] | length'); done; exit 0
+      - name: wait-for-engines
+        image: giantswarm/tiny-tools
+        command: ['sh', '-c']
+        args:
+           - >
+            count=0; while [[ $count -lt 1 ]]; do sleep 1; namespace="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"; service="engines"; cacert="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"; token="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"; echo "Waiting for $service endpoint"; endpoints=$(curl -s --cacert "$cacert" --header "Authorization: Bearer $token" https://kubernetes.default.svc/api/v1/namespaces/"$namespace"/endpoints/"$service"); count=$(echo "$endpoints" | jq -r '.subsets[]?.addresses // [] | length'); done; exit 0
+      - name: wait-for-data-server
+        image: giantswarm/tiny-tools
+        command: ['sh', '-c']
+        args:
+           - >
+            count=0; while [[ $count -lt 1 ]]; do sleep 1; namespace="$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)"; service="data-server"; cacert="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"; token="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"; echo "Waiting for $service endpoint"; endpoints=$(curl -s --cacert "$cacert" --header "Authorization: Bearer $token" https://kubernetes.default.svc/api/v1/namespaces/"$namespace"/endpoints/"$service"); count=$(echo "$endpoints" | jq -r '.subsets[]?.addresses // [] | length'); done; exit 0
+      containers:
+      - name: webapp
+        image: {{DOCKER_REGISTRY}}/appian-web-application:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+        volumeMounts:
+        - name: webapp-liveness-probe
+          mountPath: /usr/local/appian/ae/liveness-probe.sh
+          subPath: liveness-probe.sh
+        - name: appian-home-properties
+          mountPath: /usr/local/appian/ae/conf/appian-home.properties
+          subPath: appian-home.properties
+        - name: custom-properties
+          mountPath: /usr/local/appian/ae/conf/custom.properties
+          subPath: custom.properties
+        - name: passwords-properties
+          mountPath: /usr/local/appian/ae/conf/passwords.properties
+          subPath: passwords.properties
+        - name: appian-topology
+          mountPath: /usr/local/appian/ae/conf/appian-topology.xml
+          subPath: appian-topology.xml
+        - name: datasource-conf
+          mountPath: /usr/local/appian/ae/tomcat/apache-tomcat/conf/Catalina/localhost/suite.xml
+          subPath: suite.xml
+        - name: logs
+          mountPath: /usr/local/appian/ae/logs
+        - name: admin-accdocs1
+          mountPath: /usr/local/appian/ae/_admin/accdocs1
+        - name: admin-accdocs2
+          mountPath: /usr/local/appian/ae/_admin/accdocs2
+        - name: admin-accdocs3
+          mountPath: /usr/local/appian/ae/_admin/accdocs3
+        - name: admin-mini
+          mountPath: /usr/local/appian/ae/_admin/mini
+        - name: admin-models
+          mountPath: /usr/local/appian/ae/_admin/models
+        - name: admin-plugins
+          mountPath: /usr/local/appian/ae/_admin/plugins
+        - name: admin-process-notes
+          mountPath: /usr/local/appian/ae/_admin/process_notes
+        - name: admin-shared
+          mountPath: /usr/local/appian/ae/_admin/shared
+        - name: server-archived-process
+          mountPath: /usr/local/appian/ae/server/archived-process
+        - name: server-msg
+          mountPath: /usr/local/appian/ae/server/msg
+        readinessProbe:
+          httpGet:
+            path: /suite
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - '/usr/local/appian/ae/liveness-probe.sh'
+          initialDelaySeconds: 30
+          periodSeconds: 10
+
+      volumes:
+      - name: webapp-liveness-probe
+        configMap:
+          name: webapp-liveness-probe
+          defaultMode: 0744
+      - name: appian-home-properties
+        configMap:
+          name: appian-home-properties
+      - name: custom-properties
+        configMap:
+          name: custom-properties
+      - name: passwords-properties
+        configMap:
+          name: passwords-properties
+      - name: appian-topology
+        configMap:
+          name: appian-topology
+      - name: datasource-conf
+        configMap:
+          name: datasource-conf
+      - name: logs # LOCAL
+        emptyDir: {}
+      - name: admin-accdocs1 # SHARED
+        persistentVolumeClaim:
+          claimName: admin-accdocs1
+      - name: admin-accdocs2 # SHARED
+        persistentVolumeClaim:
+          claimName: admin-accdocs2
+      - name: admin-accdocs3 # SHARED
+        persistentVolumeClaim:
+          claimName: admin-accdocs3
+      - name: admin-mini # SHARED
+        persistentVolumeClaim:
+          claimName: admin-mini
+      - name: admin-models # SHARED
+        persistentVolumeClaim:
+          claimName: admin-models
+      - name: admin-plugins # SHARED
+        persistentVolumeClaim:
+          claimName: admin-plugins
+      - name: admin-process-notes # SHARED
+        persistentVolumeClaim:
+          claimName: admin-process-notes
+      - name: admin-shared # SHARED
+        persistentVolumeClaim:
+          claimName: admin-shared
+      - name: server-archived-process # SHARED
+        persistentVolumeClaim:
+          claimName: server-archived-process
+      - name: server-msg # SHARED
+        persistentVolumeClaim:
+          claimName: server-msg

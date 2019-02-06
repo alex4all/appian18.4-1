@@ -1,0 +1,20 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: data-server
+spec:
+  selector:
+    appian: data-server
+  ports:
+  - protocol: TCP
+    port: 5400
+    targetPort: 5400
+    name: watchdog
+  - protocol: TCP
+    port: 5401
+    targetPort: 5401
+    name: historical-store
+  - protocol: TCP
+    port: 5404
+    targetPort: 5404
+    name: realtime-store

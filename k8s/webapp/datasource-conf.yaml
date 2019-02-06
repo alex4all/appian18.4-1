@@ -1,0 +1,105 @@
+apiVersion: v1
+data:
+  suite.xml: |
+    <Context docBase="${ae.home}/deployment/web.war" mapperDirectoryRedirectEnabled="true" swallowOutput="true">
+      <Loader
+        loaderClass="com.appiancorp.tomcat.loader.AppianWebappClassLoader"/>
+      <JarScanner>
+        <JarScanFilter
+          pluggabilitySkip="*"
+          tldSkip="*"
+          tldScan="${tomcat.util.scan.StandardJarScanFilter.jarsToScan},
+            string-*.jar,
+            kcServlet-*.jar,
+            taglibs-standard-impl-*.jar,
+            regexp-*.jar,
+            taglibs-standard-jstlel-*.jar,
+            sitemesh-*.jar,
+            jersey-server-*.jar,
+            pluto-taglib-*.jar,
+            i18n-*.jar,
+            datetime-*.jar,
+            struts-el-*.jar,
+            struts-taglib-*.jar,
+            struts-tiles-*.jar"
+        />
+      </JarScanner>
+      <!-- BEGIN DATASOURCES -->
+
+
+
+      <Resource name="jdbc/AppianPrimaryDS"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
+        type="javax.sql.DataSource"
+        driverClassName="com.mysql.jdbc.Driver"
+        url="jdbc:mysql://rdbms:3306/AppianPrimaryDS?useOldAliasMetadataBehavior=true&amp;useUnicode=true&amp;characterEncoding=utf8"
+        username="appian"
+        password="appian"
+        initialSize="5"
+        maxTotal="100"
+        defaultTransactionIsolation="READ_COMMITTED"
+        maxWaitMillis="30000"
+        minIdle="5"
+        minEvictableIdleTimeMillis="90000"
+        timeBetweenEvictionRunsMillis="450000"
+        numTestsPerEvictionRun="100"
+        accessToUnderlyingConnectionAllowed="true"
+        validationQuery="SELECT 1"
+        testOnBorrow="true"
+      />
+
+      <Resource name="jdbc/AppianBusinessDS"
+        factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
+        type="javax.sql.DataSource"
+        driverClassName="com.mysql.jdbc.Driver"
+        url="jdbc:mysql://rdbms:3306/AppianBusinessDS?useOldAliasMetadataBehavior=true&amp;useUnicode=true&amp;characterEncoding=utf8"
+        username="appian"
+        password="appian"
+        initialSize="5"
+        maxTotal="100"
+        defaultTransactionIsolation="READ_COMMITTED"
+        maxWaitMillis="30000"
+        minIdle="5"
+        minEvictableIdleTimeMillis="90000"
+        timeBetweenEvictionRunsMillis="450000"
+        numTestsPerEvictionRun="100"
+        accessToUnderlyingConnectionAllowed="true"
+        validationQuery="SELECT 1"
+        testOnBorrow="true"
+      />
+
+
+
+      <!-- END DATASOURCES -->
+        <!-- In order to start a local broker the property conf.jms.embeddedBrokerEnabled must be set to true in custom.properties -->
+        <Resource name="jms/AppianProcessIntegrationConnectionFactory"
+                  type="org.apache.activemq.ActiveMQConnectionFactory"
+                  auth="Container"
+                  description="Appian Process Integration JMS Connection Factory"
+                  factory="org.apache.activemq.jndi.JNDIReferenceFactory"
+                  brokerURL="tcp://localhost:61616"
+                  useEmbeddedBroker="true"
+                  brokerName="AppianActiveMQBroker"/>
+
+        <Resource name="jms/AppianProcessIntegrationQueue"
+                  type="org.apache.activemq.command.ActiveMQQueue"
+                  factory="org.apache.activemq.jndi.JNDIReferenceFactory"
+                  physicalName="APPIAN.PROCESS.INTEGRATION.QUEUE"
+                  auth="Container"/>
+
+        <Resources cachingAllowed="false">
+          <PostResources base="${ae.home}/deployment/web.war/WEB-INF/resources" className="org.apache.catalina.webresources.DirResourceSet" webAppMount="/WEB-INF/classes" />
+          <PostResources base="${ae.home}/conf" className="org.apache.catalina.webresources.DirResourceSet" webAppMount="/WEB-INF/classes" />
+        </Resources>
+
+        <Manager pathname="" />
+
+        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="${ae.home}/logs"
+               prefix="access_log"
+               pattern="%h %l %u %t %r %s %b %S %T" />
+
+      </Context>
+
+kind: ConfigMap
+metadata:
+  name: datasource-conf

@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  successful.txt: |
+    Data initialized successfully
+
+kind: ConfigMap
+metadata:
+  name: data-initialized-successfully
+# TODO we should remove the need for this

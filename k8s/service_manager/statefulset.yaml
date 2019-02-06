@@ -1,0 +1,160 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: engines
+  labels:
+    appian: engines
+spec:
+  replicas: 3
+  podManagementPolicy: Parallel
+  serviceName: engines
+  template:
+    metadata:
+      labels:
+        appian: engines
+    spec:
+      imagePullSecrets:
+      - name: docker-registry
+      # hostAliases:
+      # - ip: "127.0.0.1"
+      #   hostnames: ["engines.appiancorp.com", "engines"]
+      securityContext: # allow non-root writable access to persistent volumes
+        fsGroup: 1000
+      initContainers:
+      - name: wait-for-engines-dns
+        image: busybox
+        command: ['sh', '-c', 'for i in $(seq 0 2); do until ping -c 1 engines-$i.engines; do echo waiting for engines-$i.engines DNS entry ; sleep 2 ; done ; done']
+      containers:
+      - name: engines
+        env:
+        - name: KOMODO_DIRECT_MEM_MAX
+          value: 512M
+        - name: KOMODO_HEAP_MAX
+          value: 256M
+        - name: K3HOME
+          value: /usr/local/appian/ae/server/_bin/k/linux64/
+        - name: KAFKA_HEAP_MAX
+          value: 512M
+        - name: KAFKA_HEAP_MIN
+          value: 32M
+        - name: ZK_HEAP_MAX
+          value: 128M
+        - name: ZK_HEAP_MIN
+          value: 32M
+        image: {{DOCKER_REGISTRY}}/appian-service-manager:latest
+        ports:
+        - containerPort: 7070
+        - containerPort: 2181
+        - containerPort: 9092
+        - containerPort: 5001
+        - containerPort: 5002
+        - containerPort: 5003
+        - containerPort: 5004
+        - containerPort: 5005
+        - containerPort: 5006
+        - containerPort: 5007
+        - containerPort: 5008
+        - containerPort: 5009
+        - containerPort: 5010
+        - containerPort: 5011
+        - containerPort: 5012
+        - containerPort: 5013
+        - containerPort: 5014
+        - containerPort: 5015
+        - containerPort: 5016
+        - containerPort: 5017
+        - containerPort: 5018
+        - containerPort: 5019
+        - containerPort: 5020
+        - containerPort: 5021
+        - containerPort: 5022
+        - containerPort: 5023
+        - containerPort: 5024
+        - containerPort: 5025
+        - containerPort: 5026
+        - containerPort: 5027
+        - containerPort: 5028
+        - containerPort: 5029
+        - containerPort: 5030
+        - containerPort: 5031
+        - containerPort: 5032
+        resources:
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+          requests:
+            cpu: "2"
+            memory: "2Gi"
+        volumeMounts:
+        - name: appian-topology
+          mountPath: /usr/local/appian/ae/conf/appian-topology.xml
+          subPath: appian-topology.xml
+        - name: k3lic
+          mountPath: /usr/local/appian/ae/server/_bin/k/linux64/k3.lic
+          subPath: k3.lic
+        - name: service-manager-readiness-probe
+          mountPath: /usr/local/appian/ae/readiness-probe.sh
+          subPath: readiness-probe.sh
+        - name: service-manager-liveness-probe
+          mountPath: /usr/local/appian/ae/liveness-probe.sh
+          subPath: liveness-probe.sh
+        # - name: server-data #
+          # mountPath: /usr/local/appian/ae/server
+        - name: kafka-data
+          mountPath: /usr/local/appian/ae/services/data/kafka-logs
+        - name: archived-checkpoint-dir
+          mountPath: /usr/local/appian/ae/services/data/archived
+        - name: export-dir
+          mountPath: /usr/local/appian/ae/services/data/export
+        - name: temporary-dir
+          mountPath: /usr/local/appian/ae/services/data/temporary
+        - name: logs
+          mountPath: /usr/local/appian/ae/logs/service-manager
+        readinessProbe:
+          exec:
+            command:
+              - '/usr/local/appian/ae/readiness-probe.sh'
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - '/usr/local/appian/ae/liveness-probe.sh'
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          periodSeconds: 10
+        # lifecycle: # need to not do this when one pod gets restarted, because then all engines shut down
+        #   preStop:
+        #     exec:
+        #       command: ['/usr/local/appian/ae/services/bin/stop.sh', '-p', 'a', '-s', 'all', '-c']
+      volumes:
+      - name: appian-topology
+        configMap:
+          name: appian-topology
+      - name: k3lic
+        secret:
+          secretName: k3lic
+      - name: service-manager-readiness-probe
+        configMap:
+          name: service-manager-readiness-probe
+          defaultMode: 0744
+      - name: service-manager-liveness-probe
+        configMap:
+          name: service-manager-liveness-probe
+          defaultMode: 0744
+      # - name: server-data # LOCAL
+        # emptyDir: {} # this conflicts with mounting k3.lic under server/_bin/... Need to resolve to persist data later on
+      - name: archived-checkpoint-dir # SHARED
+        persistentVolumeClaim:
+          claimName: archived-checkpoint-dir
+      - name: export-dir # SHARED
+        persistentVolumeClaim:
+          claimName: export-dir
+      - name: temporary-dir # SHARED
+        persistentVolumeClaim:
+          claimName: temporary-dir
+      - name: kafka-data # LOCAL
+        emptyDir: {}
+      - name: logs # LOCAL
+        emptyDir: {}

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topology port="5000">
+  <server host="engines">
+    <engine name="forums"/>
+    <engine name="notify"/>
+    <engine name="notify-email"/>
+    <engine name="channels"/>
+    <engine name="content"/>
+    <engine name="collaboration-statistics"/>
+    <engine name="personalization"/>
+    <engine name="portal"/>
+    <engine name="process-design"/>
+    <engine name="process-analytics0"/>
+    <engine name="process-analytics1"/>
+    <engine name="process-analytics2"/>
+    <engine name="process-execution0"/>
+    <engine name="process-execution1"/>
+    <engine name="process-execution2"/>
+  </server>
+  <search-cluster>
+    <search-server host="search-server" port="9301"/>
+  </search-cluster>
+  <kafkaCluster>
+    <broker host="engines" port="9092"/>
+  </kafkaCluster>
+  <zookeeperCluster>
+    <zookeeper host="engines" port="2181"/>
+  </zookeeperCluster>
+  <data-server-cluster>
+    <data-server host="data-server" port="5400" rts-count="1"/>
+  </data-server-cluster>
+</topology>

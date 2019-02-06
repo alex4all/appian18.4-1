@@ -1,0 +1,79 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: search-server
+  labels:
+    appian: search-server
+spec:
+  replicas: 3
+  podManagementPolicy: Parallel
+  serviceName: search-server
+  template:
+    metadata:
+      labels:
+        appian: search-server
+    spec:
+      imagePullSecrets:
+      - name: docker-registry
+      initContainers:
+      - name: wait-for-search-server-dns
+        image: busybox
+        command: ['sh', '-c', 'for i in $(seq 0 2); do until ping -c 1 search-server-$i.search-server; do echo waiting for search-server-$i.search-server DNS entry ; sleep 2 ; done ; done']
+      containers:
+      - name: search-server
+        image: {{DOCKER_REGISTRY}}/appian-search-server:latest
+        ports:
+        - containerPort: 9200
+        - containerPort: 9300
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "500Mi"
+        volumeMounts:
+        - name: appian-topology
+          mountPath: /usr/local/appian/ae/search-server/conf/appian-topology.xml
+          subPath: appian-topology.xml
+        - name: ss-custom-properties
+          mountPath: /usr/local/appian/ae/search-server/conf/custom.properties
+          subPath: custom.properties
+        - name: data
+          mountPath: /usr/local/appian/ae/search-server/_admin/search-local/search-server/data/
+        - name: logs
+          mountPath: /usr/local/appian/ae/logs/search-server
+        - name: data-initialized-successfully
+          mountPath: /usr/local/appian/ae/verify-data-was-initialized/
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 9200
+            httpHeaders:
+            - name: Authorization
+              value: Basic YWRtaW46YQ==
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 9200
+            httpHeaders:
+            - name: Authorization
+              value: Basic YWRtaW46YQ==
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: appian-topology
+        configMap:
+          name: appian-topology
+      - name: ss-custom-properties
+        configMap:
+          name: ss-custom-properties
+      - name: data # LOCAL
+        emptyDir: {}
+      - name: logs # LOCAL
+        emptyDir: {}
+      - name: data-initialized-successfully
+        configMap:
+          name: data-initialized-successfully

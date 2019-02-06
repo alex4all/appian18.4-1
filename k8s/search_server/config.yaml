@@ -1,0 +1,10 @@
+apiVersion: v1
+data:
+  custom.properties: |
+    conf.search-server.http.auth.salt=03049de8-de2f-4778-9b70-f6f0ebe38b7c
+    conf.search-server.http.auth.un=admin
+    conf.search-server.http.auth.pw=6AXUnCmXBTV9U5zMsivCUPIW6FA\=
+
+kind: ConfigMap
+metadata:
+  name: ss-custom-properties

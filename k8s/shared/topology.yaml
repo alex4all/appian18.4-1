@@ -1,0 +1,79 @@
+apiVersion: v1
+data:
+  appian-topology.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <topology port="5000">
+      <server host="engines-0.engines">
+        <engine name="forums"/>
+        <engine name="notify"/>
+        <engine name="notify-email"/>
+        <engine name="channels"/>
+        <engine name="content"/>
+        <engine name="collaboration-statistics"/>
+        <engine name="personalization"/>
+        <engine name="portal"/>
+        <engine name="process-design"/>
+        <engine name="process-analytics0"/>
+        <engine name="process-analytics1"/>
+        <engine name="process-analytics2"/>
+        <engine name="process-execution0"/>
+        <engine name="process-execution1"/>
+        <engine name="process-execution2"/>
+      </server>
+      <server host="engines-1.engines">
+        <engine name="forums"/>
+        <engine name="notify"/>
+        <engine name="notify-email"/>
+        <engine name="channels"/>
+        <engine name="content"/>
+        <engine name="collaboration-statistics"/>
+        <engine name="personalization"/>
+        <engine name="portal"/>
+        <engine name="process-design"/>
+        <engine name="process-analytics0"/>
+        <engine name="process-analytics1"/>
+        <engine name="process-analytics2"/>
+        <engine name="process-execution0"/>
+        <engine name="process-execution1"/>
+        <engine name="process-execution2"/>
+      </server>
+      <server host="engines-2.engines">
+        <engine name="forums"/>
+        <engine name="notify"/>
+        <engine name="notify-email"/>
+        <engine name="channels"/>
+        <engine name="content"/>
+        <engine name="collaboration-statistics"/>
+        <engine name="personalization"/>
+        <engine name="portal"/>
+        <engine name="process-design"/>
+        <engine name="process-analytics0"/>
+        <engine name="process-analytics1"/>
+        <engine name="process-analytics2"/>
+        <engine name="process-execution0"/>
+        <engine name="process-execution1"/>
+        <engine name="process-execution2"/>
+      </server>
+      <zookeeperCluster>
+        <zookeeper host="engines-0.engines" port="2181"/>
+        <zookeeper host="engines-1.engines" port="2181"/>
+        <zookeeper host="engines-2.engines" port="2181"/>
+      </zookeeperCluster>
+      <kafkaCluster>
+        <broker host="engines-0.engines" port="9092"/>
+        <broker host="engines-1.engines" port="9092"/>
+        <broker host="engines-2.engines" port="9092"/>
+      </kafkaCluster>
+      <search-cluster port="9300">
+        <search-server host="search-server-0.search-server"/>
+        <search-server host="search-server-1.search-server"/>
+        <search-server host="search-server-2.search-server"/>
+      </search-cluster>
+      <data-server-cluster>
+        <data-server host="data-server" port="5400" rts-count="1"/>
+      </data-server-cluster>
+    </topology>
+
+kind: ConfigMap
+metadata:
+  name: appian-topology
