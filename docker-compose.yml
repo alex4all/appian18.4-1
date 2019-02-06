@@ -60,7 +60,7 @@ services:
         - CRONSTRING=0 3 * * *
         - KEEP=2
     container_name: service-manager
-    # hostname: engines.appiancorp.com
+    hostname: engines.appiancorp.com
     depends_on:
       - base
     ports:
@@ -69,7 +69,7 @@ services:
     volumes:
       - ./conf:${APPIAN_HOME}/ear/suite.ear/conf/:delegated # path for 18.1
       - ./conf:${APPIAN_HOME}/conf/:delegated # path for 18.2
-      # - ./conf/service-manager-licenses/k3.lic:${APPIAN_HOME}/server/_bin/k/linux64/k3.lic:delegated
+      - ./conf/service-manager-licenses/k3.lic:${APPIAN_HOME}/server/_bin/k/linux64/k3.lic:delegated
 
       - ./data/server:${APPIAN_HOME}/server:delegated
       - ./data/_admin:${APPIAN_HOME}/_admin:delegated
@@ -89,7 +89,7 @@ services:
       context: ./build-files
       dockerfile: ./appian-data-server/Dockerfile
     container_name: data-server
-    # hostname: dataserver.appiancorp.com
+    hostname: dataserver.appiancorp.com
     links:
       - "service-manager:engines"
     depends_on:
@@ -101,7 +101,7 @@ services:
     stop_grace_period: 15m
     volumes:
       - ./conf/appian-topology.xml:${APPIAN_HOME}/data-server/conf/appian-topology.xml:delegated
-      # - ./conf/data-server-licenses/k4.lic:${APPIAN_HOME}/data-server/engine/bin/q/l64/k4.lic:delegated
+      - ./conf/data-server-licenses/k4.lic:${APPIAN_HOME}/data-server/engine/bin/q/l64/k4.lic:delegated
 
       - ./data/data-server:${APPIAN_HOME}/data-server/data:delegated
 
@@ -118,8 +118,8 @@ services:
     build:
       context: ./build-files
       dockerfile: ./appian-base/Dockerfile
-      # args: # For dev purposes, to uniquely identify this "args" from the others in this file
-        # - APPIAN_USER_ID=<uid of the 'appian' user on host machine if Linux, 9999 for Windows/Mac>
+      args:
+        - APPIAN_USER_ID=1001
     container_name: base
 
   rdbms:
